@@ -16,14 +16,18 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import yt_dlp
 import os
+import shutil
 
 app = Flask(__name__)
 CORS(app)  # allows the HTML/JS frontend (different origin) to call this server
 
-# Render uploads secret files here at runtime. Locally (on your PC) this
-# file won't exist, so we just skip using cookies - that's fine, YouTube
-# usually doesn't block requests coming from home internet connections.
-COOKIES_PATH = "/etc/secrets/cookies.txt"
+# Render uploads secret files to a READ-ONLY folder. yt-dlp needs to
+# WRITE to the cookies file (it refreshes cookies after use), so we
+# copy it to /tmp (which is writable) at startup and use that copy.
+SECRET_COOKIES_PATH = "/etc/secrets/cookies.txt"
+COOKIES_PATH = "/tmp/cookies.txt"
+if os.path.exists(SECRET_COOKIES_PATH):
+    shutil.copy(SECRET_COOKIES_PATH, COOKIES_PATH)
 COOKIE_OPTS = {"cookiefile": COOKIES_PATH} if os.path.exists(COOKIES_PATH) else {}
 
 
@@ -101,12 +105,12 @@ def stream(video_id):
 
 @app.route("/health")
 def health():
-    cookie_exists = os.path.exists(COOKIES_PATH)
-    cookie_size = os.path.getsize(COOKIES_PATH) if cookie_exists else 0
+    secret_found = os.path.exists(SECRET_COOKIES_PATH)
+    working_copy_found = os.path.exists(COOKIES_PATH)
     return jsonify({
         "status": "ok",
-        "cookies_file_found": cookie_exists,
-        "cookies_file_size_bytes": cookie_size,
+        "secret_file_found": secret_found,
+        "writable_copy_found": working_copy_found,
     })
 
 
