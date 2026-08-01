@@ -54,6 +54,11 @@ def resolve_stream_url(video_id):
         "quiet": True,
         "format": "bestaudio/best",
         "noplaylist": True,
+        # Cloud server IPs often get blocked by YouTube as "bot" traffic.
+        # Requesting as the Android client usually avoids that check.
+        "extractor_args": {
+            "youtube": {"player_client": ["android", "web"]}
+        },
     }
     url = f"https://www.youtube.com/watch?v={video_id}"
 
