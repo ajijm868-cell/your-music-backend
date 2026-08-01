@@ -64,7 +64,10 @@ def resolve_stream_url(video_id):
     """Given a YouTube video id, return a direct audio stream URL."""
     ydl_opts = {
         "quiet": True,
-        "format": "bestaudio/best",
+        # Try audio-only first; if YouTube's newer restrictions block that,
+        # fall back to combined video+audio formats (still playable in an
+        # <audio> tag - only the sound is used).
+        "format": "bestaudio/best[ext=mp4]/best",
         "noplaylist": True,
         **COOKIE_OPTS,
     }
