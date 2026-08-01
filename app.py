@@ -64,11 +64,14 @@ def resolve_stream_url(video_id):
     """Given a YouTube video id, return a direct audio stream URL."""
     ydl_opts = {
         "quiet": True,
-        # Try audio-only first; if YouTube's newer restrictions block that,
-        # fall back to combined video+audio formats (still playable in an
-        # <audio> tag - only the sound is used).
         "format": "bestaudio/best[ext=mp4]/best",
         "noplaylist": True,
+        # YouTube's newer "SABR streaming" restriction breaks the default
+        # web client's format list. The android client isn't affected by
+        # this (as of mid-2026), so we force it explicitly.
+        "extractor_args": {
+            "youtube": {"player_client": ["android"]}
+        },
         **COOKIE_OPTS,
     }
     url = f"https://www.youtube.com/watch?v={video_id}"
