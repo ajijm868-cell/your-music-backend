@@ -15,9 +15,16 @@ Notes:
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import yt_dlp
+import os
 
 app = Flask(__name__)
 CORS(app)  # allows the HTML/JS frontend (different origin) to call this server
+
+# Render uploads secret files here at runtime. Locally (on your PC) this
+# file won't exist, so we just skip using cookies - that's fine, YouTube
+# usually doesn't block requests coming from home internet connections.
+COOKIES_PATH = "/etc/secrets/cookies.txt"
+COOKIE_OPTS = {"cookiefile": COOKIES_PATH} if os.path.exists(COOKIES_PATH) else {}
 
 
 def search_youtube(query, limit=15):
@@ -26,6 +33,7 @@ def search_youtube(query, limit=15):
         "quiet": True,
         "extract_flat": "in_playlist",  # fast: don't fetch full info per video
         "noplaylist": True,
+        **COOKIE_OPTS,
     }
     search_query = f"ytsearch{limit}:{query}"
 
@@ -59,6 +67,7 @@ def resolve_stream_url(video_id):
         "extractor_args": {
             "youtube": {"player_client": ["android", "web"]}
         },
+        **COOKIE_OPTS,
     }
     url = f"https://www.youtube.com/watch?v={video_id}"
 
@@ -92,7 +101,13 @@ def stream(video_id):
 
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok"})
+    cookie_exists = os.path.exists(COOKIES_PATH)
+    cookie_size = os.path.getsize(COOKIES_PATH) if cookie_exists else 0
+    return jsonify({
+        "status": "ok",
+        "cookies_file_found": cookie_exists,
+        "cookies_file_size_bytes": cookie_size,
+    })
 
 
 if __name__ == "__main__":
